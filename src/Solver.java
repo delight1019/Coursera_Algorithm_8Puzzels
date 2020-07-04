@@ -26,13 +26,12 @@ public class Solver {
 
         @Override
         public int compareTo(SearchNode that) {
-            if (this.board.manhattan() < that.board.manhattan()) {
+            if (this.board.manhattan() + this.moves < that.board.manhattan() + that.moves) {
                 return -1;
             }
-            else if (this.board.manhattan() > that.board.manhattan()) {
+            else if (this.board.manhattan() + this.moves > that.board.manhattan() + that.moves) {
                 return 1;
             }
-
             return 0;
         }
     }
