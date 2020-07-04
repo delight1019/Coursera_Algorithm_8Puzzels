@@ -6,20 +6,21 @@ import edu.princeton.cs.algs4.StdOut;
 import java.util.Iterator;
 
 public class Solver {
-    private MinPQ<SearchNode> minPQ;
-    private Stack<SearchNode> inserted;
     private SearchNode answer;
     private boolean isSolvable;
+    private int moves;
 
     private class SearchNode implements Comparable<SearchNode> {
         Board board;
         int moves;
         SearchNode prev;
+        SearchNode next;
 
         public SearchNode(Board board, int moves, SearchNode prev) {
             this.board = board;
             this.moves = moves;
             this.prev = prev;
+            this.next = null;
         }
 
 
@@ -42,50 +43,55 @@ public class Solver {
             throw new IllegalArgumentException();
         }
 
-        minPQ = new MinPQ<>();
-        inserted = new Stack<>();
+        solve(initial);
+    }
 
+    private void solve(Board initial) {
+        Board swappedBoard = initial.twin();
+
+        MinPQ<SearchNode> minPQ = new MinPQ<>();
+        MinPQ<SearchNode> swappedMinPQ = new MinPQ<>();
         SearchNode initialSearchNode = new SearchNode(initial, 0, null);
-
+        SearchNode swappedInitialSearchNode = new SearchNode(swappedBoard, 0, null);
         minPQ.insert(initialSearchNode);
-        inserted.push(initialSearchNode);
-
+        swappedMinPQ.insert(swappedInitialSearchNode);
         SearchNode current = minPQ.delMin();
+        SearchNode swappedCurrent = swappedMinPQ.delMin();
 
-        while(!current.board.isGoal()) {
+        while(true) {
+            if (current.board.isGoal()) {
+                moves = current.moves;
+
+                while (current.prev != null) {
+                    current.prev.next = current;
+                    current = current.prev;
+                }
+
+                answer = current;
+                isSolvable = true;
+                return;
+            }
+
+            if (swappedCurrent.board.isGoal()) {
+                isSolvable = false;
+                return;
+            }
+
             for (Board nextBoard : current.board.neighbors()) {
-//                boolean isInserted = false;
-//
-//                for (SearchNode prevNode : inserted) {
-//                    if (nextBoard.equals(prevNode.board)) {
-//                        isInserted = true;
-//                        break;
-//                    }
-//                }
-//
-//                if (!isInserted) {
-//                    StdOut.println(nextBoard);
-//                    minPQ.insert(new SearchNode(nextBoard, current.moves + 1, current));
-//                    inserted.push(new SearchNode(nextBoard, current.moves + 1, current));
-//                }
-
                 if (current.prev == null || !nextBoard.equals(current.prev.board)) {
                     minPQ.insert(new SearchNode(nextBoard, current.moves + 1, current));
                 }
             }
 
-            if (minPQ.isEmpty()) {
-                isSolvable = false;
-                return;
+            for (Board nextBoard : swappedCurrent.board.neighbors()) {
+                if (swappedCurrent.prev == null || !nextBoard.equals(swappedCurrent.prev.board)) {
+                    swappedMinPQ.insert(new SearchNode(nextBoard, swappedCurrent.moves + 1, swappedCurrent));
+                }
             }
-            else {
-                current = minPQ.delMin();
-                int test = 0;
-            }
-        }
 
-        isSolvable = true;
-        answer = current;
+            current = minPQ.delMin();
+            swappedCurrent = swappedMinPQ.delMin();
+        }
     }
 
     // is the initial board solvable? (see below)
@@ -99,7 +105,7 @@ public class Solver {
             return -1;
         }
 
-        return answer.moves;
+        return moves;
     }
 
     // sequence of boards in a shortest solution; null if unsolvable
@@ -116,13 +122,13 @@ public class Solver {
 
                     @Override
                     public boolean hasNext() {
-                        return current.prev != null;
+                        return current != null;
                     }
 
                     @Override
                     public Board next() {
                         Board board = current.board;
-                        current = current.prev;
+                        current = current.next;
 
                         return board;
                     }

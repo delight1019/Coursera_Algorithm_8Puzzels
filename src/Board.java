@@ -1,10 +1,9 @@
 import java.util.Iterator;
 
 public class Board {
-    private int[][] goal;
     private int[][] tiles;
     private int size;
-    private location zero;
+    private int zero;
     private int manhattan;
     private int hamming;
 
@@ -24,38 +23,26 @@ public class Board {
         this.size = tiles.length;
 
         this.tiles = new int[size][size];
-        this.goal = new int[size][size];
 
         for (int i = 0; i < size; i++) {
             for (int j = 0; j < size; j++) {
                 this.tiles[i][j] = tiles[i][j];
 
-                if (i == size-1 && j == size-1) {
-                    this.goal[i][j] = 0;
-                }
-                else {
-                    this.goal[i][j] = i * size + j + 1;
-                }
 
                 if (tiles[i][j] == 0) {
-                    zero = new location(i, j);
+                    zero = i * size + j;
                 }
 
                 int value = tiles[i][j];
-                int row, col;
 
-                if (value == 0) {
-                    row = size - 1;
-                    col = size - 1;
-                }
-                else {
-                    row = value / size;
-                    col = value % size;
+                int row = (value-1) / size;
+                int col = (value-1) % size;
+
+                if (value != 0) {
+                    this.manhattan += Math.abs(row - i) + Math.abs(col - j);
                 }
 
-                this.manhattan += Math.abs(row - i) + Math.abs(col - j);
-
-                if (tiles[i][j] != i * size + j + 1) {
+                if (tiles[i][j] != 0 && tiles[i][j] != i * size + j + 1) {
                     this.hamming++;
                 }
             }
@@ -98,6 +85,19 @@ public class Board {
 
     // is this board the goal board?
     public boolean isGoal() {
+        int[][] goal = new int[size][size];
+
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                if (i == size-1 && j == size-1) {
+                    goal[i][j] = 0;
+                }
+                else {
+                    goal[i][j] = i * size + j + 1;
+                }
+            }
+        }
+
         return equals(new Board(goal));
     }
 
@@ -152,12 +152,15 @@ public class Board {
 
                     @Override
                     public Board next() {
+                        int row = zero / size;
+                        int col = zero % size;
+
                         if (currentNeigbor == 0) {
                             currentNeigbor++;
 
-                            if (zero.col != 0) {
-                                location src = new location(zero.row, zero.col);
-                                location dest = new location(zero.row, zero.col-1);
+                            if (col != 0) {
+                                location src = new location(row, col);
+                                location dest = new location(row, col-1);
 
                                 return current.twin(src, dest);
                             }
@@ -166,9 +169,9 @@ public class Board {
                         if (currentNeigbor == 1) {
                             currentNeigbor++;
 
-                            if (zero.row != size-1) {
-                                location src = new location(zero.row, zero.col);
-                                location dest = new location(zero.row+1, zero.col);
+                            if (row != size-1) {
+                                location src = new location(row, col);
+                                location dest = new location(row+1, col);
 
                                 return current.twin(src, dest);
                             }
@@ -177,9 +180,9 @@ public class Board {
                         if (currentNeigbor == 2) {
                             currentNeigbor++;
 
-                            if (zero.col != size-1) {
-                                location src = new location(zero.row, zero.col);
-                                location dest = new location(zero.row, zero.col+1);
+                            if (col != size-1) {
+                                location src = new location(row, col);
+                                location dest = new location(row, col+1);
 
                                 return current.twin(src, dest);
                             }
@@ -188,9 +191,9 @@ public class Board {
                         if (currentNeigbor == 3) {
                             currentNeigbor++;
 
-                            if (zero.row != 0) {
-                                location src = new location(zero.row, zero.col);
-                                location dest = new location(zero.row-1, zero.col);
+                            if (row != 0) {
+                                location src = new location(row, col);
+                                location dest = new location(row-1, col);
 
                                 return current.twin(src, dest);
                             }
@@ -203,8 +206,7 @@ public class Board {
         };
     }
 
-    // a board that is obtained by exchanging any pair of tiles
-    public Board twin(location p, location q) {
+    private Board twin(location p, location q) {
         int[][] newTiles = new int[size][size];
 
         for (int i = 0; i < size; i++) {
@@ -224,20 +226,45 @@ public class Board {
         return new Board(newTiles);
     }
 
-    public int numOfNeighbors() {
-        if (zero.row != 0) {
+    // a board that is obtained by exchanging any pair of tiles
+    public Board twin() {
+        location src = null;
+        location dest = null;
+
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                if (tiles[i][j] != 0) {
+                    if (src == null) {
+                        src = new location(i, j);
+                    }
+                    else if (dest == null) {
+                        dest = new location(i, j);
+                        return twin(src, dest);
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private int numOfNeighbors() {
+        int row = zero / size;
+        int col = zero % size;
+
+        if (row != 0) {
             return 4;
         }
 
-        if (zero.col != size-1) {
+        if (col != size-1) {
             return 3;
         }
 
-        if (zero.row != size-1) {
+        if (row != size-1) {
             return 2;
         }
 
-        if (zero.row != 0) {
+        if (row != 0) {
             return 1;
         }
 
